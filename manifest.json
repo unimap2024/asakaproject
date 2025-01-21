@@ -2,7 +2,7 @@
   "name": "Uni Map",
   "short_name": "Uni Map",
   "description": "Description of your PWA app.",
-  "start_url": "/asakaproject2023/",
+  "start_url": "/asakaproject/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
