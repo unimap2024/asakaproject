@@ -2,11 +2,10 @@ import * as THREE from "three";
 import CameraControls from "camera-controls";
 import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
 import {MapData} from "./mapData.js";
-import {buildingRooms} from "./building.js";
 
 if ('serviceWorker' in navigator) {
 	window.addEventListener('load', () => {
-		navigator.serviceWorker.register('/asakaproject2023/service-worker.js')
+		navigator.serviceWorker.register('/asakaproject/service-worker.js')
 			.then(registration => {
 				console.log('Service Worker registered with scope:', registration.scope);
 			}, err => {
@@ -1032,16 +1031,6 @@ function disableEvent(e) {
 }
 
 
-
-// モバイル端末を判定する関数
-function isMobileDevice() {
-	if (window.matchMedia("(max-width: 767px)").matches) {
-		return true;
-	} else {
-		return false;
-	}
-}
-
 function filterMapInfoIcon() {
 	const checkboxes = filterList.querySelectorAll("[type=\"checkbox\"]");
 	const itemNames = filterList.getElementsByClassName("itemName");
@@ -1060,23 +1049,6 @@ filterList.addEventListener("change", function(event) {
 	filterMapInfoIcon();
 	setMapInfoPosition();
 });
-
-function logMapObjectNames(maps) {
-    let objectNames = []; // 名前を格納するための配列を初期化
-    maps.forEach(map => {
-        map.children.forEach(obj => {
-            let mapObjName = obj.name.normalize("NFKC"); // letで宣言
-            if (!mapObjName.includes("object") && !mapObjName.includes("transition") && (!mapObjName.includes("_"))) {
-                if (mapObjName.includes("_")) {
-                    mapObjName = mapObjName.split("_")[0];
-                }
-                objectNames.push(mapObjName); // 条件を満たす名前を配列に追加
-            }
-        });
-    });
-    console.log(objectNames); // 配列をコンソールに出力
-    return objectNames; // 必要に応じて配列を返す
-}
 
 // 点滅するオブジェクトを管理するための変数
 let isBlinking = false;
@@ -1099,74 +1071,48 @@ function onMapChange() {
 	}
 }
 
-// 検索用語に基づいてハイライトする関数
 function highlightSearchTerm(searchTerm) {
 	resetHighlightedObjects();
 
-	//完全一致
-	// シーン内のオブジェクトをループして一致するオブジェクトを探す
-	/*let foundObject = false;
-	scenes[currentSceneName].traverse((object) => {
-		let objectName = object.name.toLowerCase();
-		if (objectName.includes('_')) {
-			objectName = objectName.split('_')[0]; // '_'の前の部分を取得
-		}
-		if (objectName.includes('(')) {
-			objectName = objectName.split('(')[0]; // '('の前の部分を取得
-		}
-
-		if (objectName === searchTerm.toLowerCase() || object.name.toLowerCase() === searchTerm.toLowerCase()) {
-			highlightObject(object);
-			foundObject = true;
-		}
-	});
-
-	// データ構造を参照する処理
-	if (!foundObject) {
-		for (const [building, rooms] of Object.entries(buildingRooms)) {
-			if (rooms.map(room => room.toLowerCase()).includes(searchTerm.toLowerCase())) {
-				scenes[currentSceneName].traverse((object) => {
-					if (object.name.toLowerCase() === building.toLowerCase()) {
-						highlightObject(object);
-					}
-				});
-			}
-		}
-	}*/
-
-
-	//部分一致
-	// シーン内のオブジェクトをループして一致するオブジェクトを探す
-	let foundObject = false;
-	scenes[currentSceneName].traverse((object) => {
-		let objectName = object.name.toLowerCase();
-		if (objectName.includes('_')) {
-			objectName = objectName.split('_')[0]; // '_'の前の部分を取得
-		}
-		if (objectName.includes('(')) {
-			objectName = objectName.split('(')[0]; // '('の前の部分を取得
-		}
-
-		if (objectName.replace(/\./g, '').includes(searchTerm.toLowerCase()) && !object.name.includes("object")) {
-			highlightObject(object);
-			foundObject = true;
-		}
-	});
-
-	// データ構造を参照する処理
-	if (!foundObject) {
-		for (const [building, rooms] of Object.entries(buildingRooms)) {
-			if (rooms.some(room => room.toLowerCase().includes(searchTerm.toLowerCase()))) {
-				scenes[currentSceneName].traverse((object) => {
-					if (object.name.toLowerCase() === building.toLowerCase()) {
-						highlightObject(object);
-					}
-				});
-			}
-		}
+	// 入力が空の場合は終了
+	if (!searchTerm) {
+		return;
 	}
+
+	// 正規表現を作成（大文字小文字を無視）
+	const regex = new RegExp(searchTerm, 'i'); // 'i' は大文字小文字を無視
+
+	// 検索結果を保持する
+	let matchingIDs = [];
+	let matchingBuildings = new Set();
+
+	// CSVデータから検索
+	mapInfoList.forEach(entry => {
+		if (entry.name && regex.test(entry.name)) { // 正規表現で名称をチェック
+			matchingIDs.push(entry.id); // 一致したIDを保存
+			matchingBuildings.add(entry.building); // 建物名をセットに追加（重複を排除）
+		}
+	});
+
+	// IDに基づいてオブジェクトをハイライト
+	scenes[currentSceneName].traverse(object => {
+		if (matchingIDs.some(id => id.toLowerCase() === object.name.toLowerCase())) {
+			highlightObject(object);
+		}
+	});
+
+	// 建物名に基づいてオブジェクトを点滅
+	matchingBuildings.forEach(building => {
+		scenes[currentSceneName].traverse(object => {
+			if (building.toLowerCase() === object.name.toLowerCase()) {
+				highlightObject(object);
+			}
+		});
+	});
+
 	startOrStopBlinking();
 }
+
 
 // 検索ボックスのイベントハンドラー
 function handleSearch() {
