@@ -503,7 +503,6 @@ async function loadMap(maps) {
 	let count = 0;
 	for (const fileName in maps) {
 		const mapDataPath = maps[fileName]["dirPath"] + fileName;
-		console.log("test");
 		const glb = await loader.loadAsync(mapDataPath);
 		const map = glb.scene;
 
